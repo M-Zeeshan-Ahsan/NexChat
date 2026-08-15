@@ -4,6 +4,7 @@ import { Route, Routes } from "react-router-dom";
 import Signup from "./pages/auth/signup";
 import Login from "./pages/auth/login";
 import Protected from "./middleware/protected";
+import Chat from "./pages/chat/chat";
 function App() {
   return (
     <>
@@ -11,23 +12,14 @@ function App() {
         {" "}
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        {/* <Route
+        <Route
           path="/"
           element={
             <Protected>
-              <ListTask />
+              <Chat />
             </Protected>
           }
         />
-        <Route
-          path="/add"
-          element={
-            <Protected>
-              <AddTask />
-            </Protected>
-          }
-        />
-        <Route path="/update/:id" element={<UpdateTask />} /> */}
       </Routes>
     </>
   );
