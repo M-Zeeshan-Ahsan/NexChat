@@ -1,15 +1,34 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
 import "./styles/App.scss";
-
+import { Route, Routes } from "react-router-dom";
+import Signup from "./pages/auth/signup";
+import Login from "./pages/auth/login";
+import Protected from "./middleware/protected";
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
     <>
-      <h1>Login</h1>
+      <Routes>
+        {" "}
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        {/* <Route
+          path="/"
+          element={
+            <Protected>
+              <ListTask />
+            </Protected>
+          }
+        />
+        <Route
+          path="/add"
+          element={
+            <Protected>
+              <AddTask />
+            </Protected>
+          }
+        />
+        <Route path="/update/:id" element={<UpdateTask />} /> */}
+      </Routes>
     </>
   );
 }
