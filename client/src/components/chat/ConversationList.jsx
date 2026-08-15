@@ -1,72 +1,77 @@
-import React from "react";
+import React, { useState } from "react";
 import ConversationItem from "./ConversationItem";
 import { useSelector } from "react-redux";
-
-const conversationss = [
-  {
-    id: 1,
-    name: "Ali Ahmed",
-    avatar: "https://i.pravatar.cc/150?img=12",
-    lastMessage: "Okay, I'll check it.",
-    time: "10:32 AM",
-    unread: 2,
-    online: true,
-  },
-  {
-    id: 2,
-    name: "Hamza Khan",
-    avatar: "https://i.pravatar.cc/150?img=13",
-    lastMessage: "Are you available?",
-    time: "09:45 AM",
-    unread: 0,
-    online: true,
-  },
-  {
-    id: 3,
-    name: "Usman",
-    avatar: "https://i.pravatar.cc/150?img=14",
-    lastMessage: "Thanks!",
-    time: "Yesterday",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: 4,
-    name: "Ahmed Raza",
-    avatar: "https://i.pravatar.cc/150?img=15",
-    lastMessage: "Let's talk tomorrow.",
-    time: "Yesterday",
-    unread: 5,
-    online: false,
-  },
-];
+import NewChat from "./NewChat";
 
 const ConversationList = ({ selectedConversation, onSelectConversation }) => {
   const { conversations, loading, error } = useSelector((state) => state.chat);
+  console.log("conversations", conversations);
+  const [showNewChat, setShowNewChat] = useState(false);
+
+  const hasConversations = conversations?.length > 0;
 
   return (
-    <aside className="conversation-list">
-      <div className="conversation-header">
-        <h2>Messages</h2>
+    <>
+      <aside className="conversation-list">
+        <div className="conversation-header">
+          <h2>Messages</h2>
 
-        <button className="new-chat-btn">+</button>
-      </div>
+          <button className="new-chat-btn" onClick={() => setShowNewChat(true)}>
+            +
+          </button>
+        </div>
 
-      <div className="conversation-search">
-        <input type="text" placeholder="Search conversations..." />
-      </div>
+        {hasConversations && (
+          <div className="conversation-search">
+            <input type="text" placeholder="Search conversations..." />
+          </div>
+        )}
 
-      <div className="conversations">
-        {conversations.map((conversation) => (
-          <ConversationItem
-            key={conversation.id}
-            conversation={conversation}
-            selected={selectedConversation?.id === conversation.id}
-            onClick={() => onSelectConversation(conversation)}
-          />
-        ))}
-      </div>
-    </aside>
+        <div
+          className={`conversations ${
+            !hasConversations ? "empty-conversations" : ""
+          }`}
+        >
+          {false ? (
+            <div className="conversation-loading">Loading...</div>
+          ) : hasConversations ? (
+            conversations.map((conversation) => (
+              <ConversationItem
+                key={conversation.id}
+                conversation={conversation}
+                selected={selectedConversation?.id === conversation.id}
+                onClick={() => onSelectConversation(conversation)}
+              />
+            ))
+          ) : (
+            <div className="empty-conversation">
+              <div className="empty-chat-icon">💬</div>
+
+              <h3>No conversations yet</h3>
+
+              <p>Start a new conversation with someone from your contacts.</p>
+
+              <button
+                className="start-chat-btn"
+                onClick={() => setShowNewChat(true)}
+              >
+                <span>+</span>
+                Start New Conversation
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {showNewChat && (
+        <NewChat
+          onClose={() => setShowNewChat(false)}
+          onConversationCreated={(conversation) => {
+            onSelectConversation(conversation);
+          }}
+        />
+      )}
+    </>
   );
 };
 

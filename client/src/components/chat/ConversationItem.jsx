@@ -28,7 +28,7 @@ const ConversationItem = ({ conversation, selected, onClick }) => {
         </div>
 
         <div className="conversation-bottom">
-          <p>{conversation.lastMessage}</p>
+          <p>{conversation.lastMessage.message}</p>
 
           {conversation.unread > 0 && (
             <span className="unread-count">{conversation.unread}</span>

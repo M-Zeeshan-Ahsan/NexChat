@@ -11,6 +11,7 @@ const initialState = {
   error: null,
   conversations: [],
   messages: [],
+  users: [],
 };
 export const getAllConversations = createAsyncThunk(
   "chat/getAllConversations",
@@ -47,6 +48,36 @@ export const sendMessage = createAsyncThunk(
       const response = await api.post(API_URLS.CHAT.SEND_MESSAGE, {
         conversationId,
         message,
+      });
+
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Something went wrong",
+      );
+    }
+  },
+);
+export const getAllUsers = createAsyncThunk(
+  "chat/getAllUsers",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get(API_URLS.CHAT.ALL_USERS);
+
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Something went wrong",
+      );
+    }
+  },
+);
+export const createConversation = createAsyncThunk(
+  "chat/createConversation",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await api.post(API_URLS.CHAT.CREATE_CONVERSATION, {
+        receiverId: userId,
       });
 
       return response.data.data;
@@ -101,6 +132,15 @@ const chatSlice = createSlice({
     builder.addCase(sendMessage.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload;
+    });
+    builder.addCase(getAllUsers.fulfilled, (state, action) => {
+      state.loading = false;
+      state.users = action.payload;
+    });
+
+    builder.addCase(createConversation.fulfilled, (state, action) => {
+      state.loading = false;
+      // state.conversations.unshift(action.payload);
     });
   },
 });

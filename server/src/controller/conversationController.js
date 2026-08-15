@@ -11,7 +11,9 @@ export const createConversation = async (req, res, next) => {
   try {
     const senderId = req.user.id;
     const { receiverId } = req.body;
-
+    if (senderId === receiverId) {
+      throw new ApiError(400, "You cannot create a conversation with yourself");
+    }
     const db = await connection();
     const collection = await db.collection(conversationCollection);
     const userCol = await db.collection(userCollection);
@@ -65,23 +67,25 @@ export const getConversations = async (req, res, next) => {
     const userId = new ObjectId(req.user.id);
 
     const db = await connection();
+
     const collection = db.collection(conversationCollection);
 
     const conversations = await collection
       .aggregate([
-        // Sirf current user ki conversations
+        // Current user's conversations
         {
           $match: {
             participants: userId,
           },
         },
 
-        // Current user ko participants se remove karo
+        // Find other user
         {
           $project: {
             participants: 1,
             createdAt: 1,
             updatedAt: 1,
+
             otherUser: {
               $filter: {
                 input: "$participants",
@@ -94,12 +98,11 @@ export const getConversations = async (req, res, next) => {
           },
         },
 
-        // Array se single ObjectId nikalo
         {
           $unwind: "$otherUser",
         },
 
-        // users collection join
+        // Get other user
         {
           $lookup: {
             from: "users",
@@ -109,23 +112,79 @@ export const getConversations = async (req, res, next) => {
           },
         },
 
-        // user array ko object banao
         {
           $unwind: "$chatuser",
         },
 
-        // Sirf required fields bhejo
+        // Get latest message
+        {
+          $lookup: {
+            from: "messages",
+            let: {
+              conversationId: "$_id",
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$conversationId", "$$conversationId"],
+                  },
+                },
+              },
+
+              {
+                $sort: {
+                  createdAt: -1,
+                },
+              },
+
+              {
+                $limit: 1,
+              },
+
+              {
+                $project: {
+                  _id: 0,
+                  message: 1,
+                  createdAt: 1,
+                },
+              },
+            ],
+            as: "latestMessage",
+          },
+        },
+
+        // latestMessage array -> object
+        {
+          $unwind: {
+            path: "$latestMessage",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Final response
         {
           $project: {
             _id: 0,
+
             id: "$_id",
+
             participants: 1,
+
             createdAt: 1,
             updatedAt: 1,
-            "chatuser._id": 1,
-            "chatuser.name": 1,
-            "chatuser.email": 1,
-            "chatuser.profileImage": 1,
+
+            chatuser: {
+              id: "$chatuser._id",
+              name: "$chatuser.name",
+              email: "$chatuser.email",
+              profileImage: "$chatuser.profileImage",
+            },
+
+            lastMessage: {
+              message: "$latestMessage.message",
+              createdAt: "$latestMessage.createdAt",
+            },
           },
         },
       ])
