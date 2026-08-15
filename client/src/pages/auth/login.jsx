@@ -48,7 +48,6 @@ const Login = () => {
       const result = await dispatch(login(formData)).unwrap();
       console.log("result", result);
       document.cookie = `token=${result.accessToken}; path=/; max-age=604800`;
-      localStorage.setItem("login", formData.email);
       setFormData({
         email: "",
         password: "",

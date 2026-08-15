@@ -8,14 +8,14 @@ const ChatHeader = ({ conversation }) => {
         <div className="avatar-wrapper">
           <Avatar
             src={conversation.avatar}
-            name={conversation.name}
+            name={conversation.chatuser.name}
             size={48}
           />
           {conversation.online && <span className="online-dot" />}
         </div>
 
         <div>
-          <h3>{conversation.name}</h3>
+          <h3>{conversation.chatuser.name}</h3>
 
           <span>{conversation.online ? "Online" : "Offline"}</span>
         </div>

@@ -1,7 +1,8 @@
 import React from "react";
 import ConversationItem from "./ConversationItem";
+import { useSelector } from "react-redux";
 
-const conversations = [
+const conversationss = [
   {
     id: 1,
     name: "Ali Ahmed",
@@ -41,6 +42,8 @@ const conversations = [
 ];
 
 const ConversationList = ({ selectedConversation, onSelectConversation }) => {
+  const { conversations, loading, error } = useSelector((state) => state.chat);
+
   return (
     <aside className="conversation-list">
       <div className="conversation-header">

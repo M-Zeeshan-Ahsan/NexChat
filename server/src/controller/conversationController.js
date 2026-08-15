@@ -117,6 +117,8 @@ export const getConversations = async (req, res, next) => {
         // Sirf required fields bhejo
         {
           $project: {
+            _id: 0,
+            id: "$_id",
             participants: 1,
             createdAt: 1,
             updatedAt: 1,
@@ -131,7 +133,7 @@ export const getConversations = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      conversations,
+      data: conversations,
     });
   } catch (error) {
     console.log(error);

@@ -1,5 +1,6 @@
 import React from "react";
 import Avatar from "../../shared/Avatar";
+import FormattedDate from "../../shared/FormattedDate";
 
 const ConversationItem = ({ conversation, selected, onClick }) => {
   return (
@@ -8,16 +9,22 @@ const ConversationItem = ({ conversation, selected, onClick }) => {
       onClick={onClick}
     >
       <div className="avatar-wrapper">
-        <Avatar src={conversation.avatar} name={conversation.name} size={48} />
+        <Avatar
+          src={conversation.chatuser.avatar}
+          name={conversation.chatuser.name}
+          size={48}
+        />
 
         {conversation.online && <span className="online-dot" />}
       </div>
 
       <div className="conversation-content">
         <div className="conversation-top">
-          <h4>{conversation.name}</h4>
+          <h4>{conversation.chatuser.name}</h4>
 
-          <span className="conversation-time">{conversation.time}</span>
+          <span className="conversation-time">
+            <FormattedDate date={conversation.createdAt} showTime />
+          </span>
         </div>
 
         <div className="conversation-bottom">

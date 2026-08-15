@@ -1,54 +1,30 @@
-import React, { useState } from "react";
+import React, { use, useState } from "react";
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
+import { useSelector, useDispatch } from "react-redux";
+import { sendMessage } from "../../store/slices/chatSlice";
+import { showToast } from "../../utils/toast";
 
 const ChatWindow = ({ conversation }) => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Hey! How are you?",
-      sender: "other",
-      time: "10:25 AM",
-    },
-    {
-      id: 2,
-      text: "I'm good. How about you?",
-      sender: "me",
-      time: "10:26 AM",
-    },
-    {
-      id: 3,
-      text: "I'm doing great!",
-      sender: "other",
-      time: "10:27 AM",
-    },
-    {
-      id: 4,
-      text: "Are you working on the chat application?",
-      sender: "other",
-      time: "10:28 AM",
-    },
-    {
-      id: 5,
-      text: "Yes, I'm working on it right now.",
-      sender: "me",
-      time: "10:29 AM",
-    },
-  ]);
+  const dispatch = useDispatch();
+  const { messages } = useSelector((state) => state.chat);
+  const { user } = useSelector((state) => state.auth);
+  console.log("user", user);
+  const handleSendMessage = async (message) => {
+    if (!message.trim()) return;
 
-  const handleSendMessage = (message) => {
-    const newMessage = {
-      id: Date.now(),
-      text: message,
-      sender: "me",
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+    try {
+      await dispatch(
+        sendMessage({
+          conversationId: conversation.id,
+          message: message.trim(),
+        }),
+      ).unwrap();
+    } catch (error) {
+      console.error("Send message error:", error);
+      showToast(error, "error");
+    }
   };
 
   if (!conversation) {
@@ -64,12 +40,19 @@ const ChatWindow = ({ conversation }) => {
       </section>
     );
   }
-
+  const currentUserId = user?.id;
+  console.log("currentUserId", currentUserId);
+  const formattedMessages = messages.map((message) => ({
+    id: message._id,
+    text: message.message,
+    sender: message.senderId === currentUserId ? "me" : "other",
+    time: message.createdAt,
+  }));
   return (
     <section className="chat-window">
       <ChatHeader conversation={conversation} />
 
-      <MessageList messages={messages} />
+      <MessageList messages={formattedMessages} />
 
       <MessageInput onSend={handleSendMessage} />
     </section>

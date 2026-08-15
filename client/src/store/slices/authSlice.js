@@ -6,11 +6,11 @@ import {
 import axios from "axios";
 import api from "../services/api";
 import API_URLS from "../services/apiUrls";
-
+const savedUser = localStorage.getItem("user");
 const initialState = {
   loading: false,
   error: null,
-  user: [],
+  user: savedUser ? JSON.parse(savedUser) : null,
   token: null,
 };
 
@@ -62,8 +62,15 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     });
-    builder.addCase(login.fulfilled, (state) => {
+    builder.addCase(login.fulfilled, (state, action) => {
       state.loading = false;
+
+      const user = action.payload.data;
+
+      state.user = user;
+      state.token = action.payload.token;
+
+      localStorage.setItem("user", JSON.stringify(user));
     });
     builder.addCase(login.rejected, (state, action) => {
       state.loading = false;
