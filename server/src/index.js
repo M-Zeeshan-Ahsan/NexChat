@@ -1,29 +1,29 @@
-import express from "express";
 import dotenv from "dotenv";
-import helmet from "helmet";
-import morgan from "morgan";
-import cors from "cors";
-import errorHandler from "./middleware/errorHandler.js";
-import userRoutes from "./routes/userRoutes.js";
-import conversationRoutes from "./routes/conversationRoutes.js";
+import http from "http";
+import { Server } from "socket.io";
+
+import app from "./app.js";
+import { socketConnection } from "./sockets/socket.js";
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
-const app = express();
 
-app.use(helmet());
-app.use(morgan("dev"));
-app.use(cors());
-app.use(express.json());
-app.use("/api", userRoutes);
-app.use("/api", conversationRoutes);
-app.use(errorHandler);
+// HTTP Server
+const server = http.createServer(app);
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
+// Socket.IO Server
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
 });
 
-app.listen(PORT, () => {
+// Socket Connection
+socketConnection(io);
+
+// Start Server
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
