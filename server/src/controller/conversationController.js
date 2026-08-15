@@ -72,14 +72,14 @@ export const getConversations = async (req, res, next) => {
 
     const conversations = await collection
       .aggregate([
-        // Current user's conversations
+        // 1. Current user's conversations
         {
           $match: {
             participants: userId,
           },
         },
 
-        // Find other user
+        // 2. Find other user
         {
           $project: {
             participants: 1,
@@ -98,11 +98,12 @@ export const getConversations = async (req, res, next) => {
           },
         },
 
+        // 3. Array -> ObjectId
         {
           $unwind: "$otherUser",
         },
 
-        // Get other user
+        // 4. Get other user
         {
           $lookup: {
             from: "users",
@@ -112,17 +113,20 @@ export const getConversations = async (req, res, next) => {
           },
         },
 
+        // 5. User array -> Object
         {
           $unwind: "$chatuser",
         },
 
-        // Get latest message
+        // 6. Get latest message
         {
           $lookup: {
             from: "messages",
+
             let: {
               conversationId: "$_id",
             },
+
             pipeline: [
               {
                 $match: {
@@ -150,11 +154,65 @@ export const getConversations = async (req, res, next) => {
                 },
               },
             ],
+
             as: "latestMessage",
           },
         },
 
-        // latestMessage array -> object
+        // 7. Get unread messages
+        {
+          $lookup: {
+            from: "messages",
+
+            let: {
+              conversationId: "$_id",
+            },
+
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      {
+                        $eq: ["$conversationId", "$$conversationId"],
+                      },
+
+                      // Sirf doosre user ke messages
+                      {
+                        $ne: ["$senderId", userId],
+                      },
+
+                      // Current user ne read nahi kiya
+                      {
+                        $not: {
+                          $in: [
+                            userId,
+                            {
+                              $ifNull: ["$readBy", []],
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+
+            as: "unreadMessages",
+          },
+        },
+
+        // 8. Count unread messages
+        {
+          $addFields: {
+            unreadCount: {
+              $size: "$unreadMessages",
+            },
+          },
+        },
+
+        // 9. latestMessage array -> object
         {
           $unwind: {
             path: "$latestMessage",
@@ -162,7 +220,7 @@ export const getConversations = async (req, res, next) => {
           },
         },
 
-        // Final response
+        // 10. Final response
         {
           $project: {
             _id: 0,
@@ -185,6 +243,8 @@ export const getConversations = async (req, res, next) => {
               message: "$latestMessage.message",
               createdAt: "$latestMessage.createdAt",
             },
+
+            unreadCount: 1,
           },
         },
       ])
@@ -236,6 +296,7 @@ export const sendMessages = async (req, res, next) => {
       conversationId: new ObjectId(conversationId),
       senderId,
       message: message.trim(),
+      readBy: [new ObjectId(req.user.id)],
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -266,7 +327,7 @@ export const sendMessages = async (req, res, next) => {
 
 export const getMessages = async (req, res, next) => {
   try {
-    const senderId = new ObjectId(req.user.id);
+    const userId = new ObjectId(req.user.id);
     const { conversationId } = req.params;
 
     const db = await connection();
@@ -285,7 +346,7 @@ export const getMessages = async (req, res, next) => {
 
     // Check logged-in user is participant
     const isParticipant = conversation.participants.some(
-      (id) => id.toString() === senderId.toString(),
+      (id) => id.toString() === userId.toString(),
     );
 
     if (!isParticipant) {
@@ -295,12 +356,34 @@ export const getMessages = async (req, res, next) => {
       );
     }
 
-    // Get all messages
+    // Mark other user's unread messages as read
+    await messageCol.updateMany(
+      {
+        conversationId: new ObjectId(conversationId),
+
+        // Don't mark my own messages
+        senderId: {
+          $ne: userId,
+        },
+
+        // Only unread messages
+        readBy: {
+          $nin: [userId],
+        },
+      },
+      {
+        $addToSet: {
+          readBy: userId,
+        },
+      },
+    );
+
+    // Get all messages after marking them as read
     const messages = await messageCol
       .find({
         conversationId: new ObjectId(conversationId),
       })
-      .sort({ createdAt: 1 }) // Oldest → Newest
+      .sort({ createdAt: 1 })
       .toArray();
 
     return res.status(200).json({
