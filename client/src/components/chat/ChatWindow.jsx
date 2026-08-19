@@ -1,32 +1,75 @@
-import React, { use, useState } from "react";
+import React, { use, useState, useEffect } from "react";
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { useSelector, useDispatch } from "react-redux";
-import { sendMessage } from "../../store/slices/chatSlice";
+import { sendMessage, addMessage } from "../../store/slices/chatSlice";
 import { showToast } from "../../utils/toast";
+import socket from "../../socket/socket";
 
 const ChatWindow = ({ conversation }) => {
   const dispatch = useDispatch();
   const { messages } = useSelector((state) => state.chat);
   const { user } = useSelector((state) => state.auth);
   console.log("user", user);
-  const handleSendMessage = async (message) => {
+  // const handleSendMessage = async (message) => {
+  //   if (!message.trim()) return;
+
+  //   try {
+  //     await dispatch(
+  //       sendMessage({
+  //         conversationId: conversation.id,
+  //         message: message.trim(),
+  //       }),
+  //     ).unwrap();
+  //   } catch (error) {
+  //     console.error("Send message error:", error);
+  //     showToast(error, "error");
+  //   }
+  // };
+  const handleSendMessage = (message) => {
     if (!message.trim()) return;
 
-    try {
-      await dispatch(
-        sendMessage({
-          conversationId: conversation.id,
-          message: message.trim(),
-        }),
-      ).unwrap();
-    } catch (error) {
-      console.error("Send message error:", error);
-      showToast(error, "error");
-    }
-  };
+    if (!conversation?.id) return;
 
+    socket.emit("sendMessage", {
+      conversationId: conversation.id,
+      message: message.trim(),
+    });
+  };
+  useEffect(() => {
+    if (!conversation?.id) return;
+
+    console.log("Joining conversation:", conversation.id);
+
+    socket.emit("joinConversation", conversation.id);
+
+    socket.on("conversationJoined", (data) => {
+      console.log("✅ Conversation joined:", data);
+    });
+
+    socket.on("messageError", (error) => {
+      console.error("❌ Socket error:", error.message);
+    });
+
+    return () => {
+      socket.off("conversationJoined");
+      socket.off("messageError");
+    };
+  }, [conversation?.id]);
+  // useEffect(() => {
+  //   const handleNewMessage = (message) => {
+  //     console.log("📩 New message received:", message);
+
+  //     dispatch(addMessage(message));
+  //   };
+
+  //   socket.on("newMessage", handleNewMessage);
+
+  //   return () => {
+  //     socket.off("newMessage", handleNewMessage);
+  //   };
+  // }, [dispatch]);
   if (!conversation) {
     return (
       <section className="chat-window empty-chat">

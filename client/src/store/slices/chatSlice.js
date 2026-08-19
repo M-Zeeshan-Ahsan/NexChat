@@ -91,7 +91,12 @@ export const createConversation = createAsyncThunk(
 const chatSlice = createSlice({
   name: "chat",
   initialState,
-  reducers: {},
+  reducers: {
+    addMessage: (state, action) => {
+      console.log("new message test", action.payload);
+      state.messages.push(action.payload);
+    },
+  },
   extraReducers: (builder) => {
     builder.addCase(getAllConversations.pending, (state) => {
       state.loading = true;
@@ -144,4 +149,5 @@ const chatSlice = createSlice({
     });
   },
 });
+export const { addMessage } = chatSlice.actions;
 export default chatSlice.reducer;

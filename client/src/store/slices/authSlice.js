@@ -7,11 +7,13 @@ import axios from "axios";
 import api from "../services/api";
 import API_URLS from "../services/apiUrls";
 const savedUser = localStorage.getItem("user");
+const savedToken = localStorage.getItem("token");
+
 const initialState = {
   loading: false,
   error: null,
   user: savedUser ? JSON.parse(savedUser) : null,
-  token: null,
+  token: savedToken || null,
 };
 
 export const signup = createAsyncThunk(
@@ -66,11 +68,10 @@ const authSlice = createSlice({
       state.loading = false;
 
       const user = action.payload.data;
-
       state.user = user;
-      state.token = action.payload.token;
-
+      state.token = action.payload.accessToken;
       localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("token", action.payload.accessToken);
     });
     builder.addCase(login.rejected, (state, action) => {
       state.loading = false;
@@ -78,4 +79,5 @@ const authSlice = createSlice({
     });
   },
 });
+
 export default authSlice.reducer;
