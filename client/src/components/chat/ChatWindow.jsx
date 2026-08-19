@@ -3,7 +3,11 @@ import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { useSelector, useDispatch } from "react-redux";
-import { sendMessage, addMessage } from "../../store/slices/chatSlice";
+import {
+  sendMessage,
+  addMessage,
+  markConversationAsRead,
+} from "../../store/slices/chatSlice";
 import { showToast } from "../../utils/toast";
 import socket from "../../socket/socket";
 
@@ -42,6 +46,7 @@ const ChatWindow = ({ conversation }) => {
 
     console.log("Joining conversation:", conversation.id);
 
+    dispatch(markConversationAsRead(conversation.id));
     socket.emit("joinConversation", conversation.id);
 
     socket.on("conversationJoined", (data) => {
@@ -56,7 +61,7 @@ const ChatWindow = ({ conversation }) => {
       socket.off("conversationJoined");
       socket.off("messageError");
     };
-  }, [conversation?.id]);
+  }, [conversation?.id, dispatch]);
   // useEffect(() => {
   //   const handleNewMessage = (message) => {
   //     console.log("📩 New message received:", message);

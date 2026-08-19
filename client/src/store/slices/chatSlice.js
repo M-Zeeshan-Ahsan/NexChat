@@ -96,6 +96,43 @@ const chatSlice = createSlice({
       console.log("new message test", action.payload);
       state.messages.push(action.payload);
     },
+    incrementUnreadCount: (state, action) => {
+      const { conversationId } = action.payload;
+      const conversation = state.conversations.find(
+        (conversation) => conversation.id === conversationId,
+      );
+      if (conversation) {
+        conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+      }
+    },
+    markConversationAsRead: (state, action) => {
+      const conversation = state.conversations.find(
+        (item) => item.id === action.payload,
+      );
+
+      if (conversation) {
+        conversation.unreadCount = 0;
+      }
+    },
+    updateLastMessage: (state, action) => {
+      const { conversationId, message, createdAt } = action.payload;
+      console.log("updateLastMessage", action.payload);
+      const conversation = state.conversations.find(
+        (item) => item.id === conversationId,
+      );
+
+      if (conversation) {
+        console.log("test conversation", conversation.lastMessage);
+        conversation.lastMessage = {
+          message,
+          createdAt,
+        };
+      }
+    },
+    addConversation: (state, action) => {
+      console.log("test", action.payload);
+      state.conversations.unshift(action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(getAllConversations.pending, (state) => {
@@ -149,5 +186,11 @@ const chatSlice = createSlice({
     });
   },
 });
-export const { addMessage } = chatSlice.actions;
+export const {
+  addMessage,
+  incrementUnreadCount,
+  markConversationAsRead,
+  updateLastMessage,
+  addConversation,
+} = chatSlice.actions;
 export default chatSlice.reducer;

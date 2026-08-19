@@ -5,8 +5,11 @@ import { connection } from "../config/dbconfig.js";
 const onlineUsers = new Map();
 
 const messagesCollection = "messages";
+let ioInstance = null;
 
+export const getIO = () => ioInstance;
 export const socketConnection = (io) => {
+  ioInstance = io;
   // =========================
   // Socket Authentication
   // =========================
@@ -39,7 +42,10 @@ export const socketConnection = (io) => {
     onlineUsers.set(socket.userId, socket.id);
 
     console.log("Online Users:", onlineUsers);
+    // Join personal user room
+    socket.join(`user:${socket.userId}`);
 
+    console.log(`User joined personal room: user:${socket.userId}`);
     // =========================
     // Join Conversation
     // =========================
@@ -89,12 +95,14 @@ export const socketConnection = (io) => {
     // =========================
     socket.on("sendMessage", async (data) => {
       console.log("📨 sendMessage received:", data);
+
       if (typeof data === "string") {
         data = JSON.parse(data);
       }
+
       try {
         const { conversationId, message } = data;
-        console.log("test", data);
+
         if (!conversationId || !message?.trim()) {
           return socket.emit("messageError", {
             message: "Conversation ID and message are required",
@@ -123,6 +131,13 @@ export const socketConnection = (io) => {
           });
         }
 
+        // Find recipient
+        const recipientId = conversation.participants.find(
+          (participant) => participant.toString() !== socket.userId.toString(),
+        );
+
+        console.log("👤 Recipient ID:", recipientId);
+
         // Messages collection
         const collection = db.collection(messagesCollection);
 
@@ -143,8 +158,15 @@ export const socketConnection = (io) => {
 
         console.log("📩 Message saved:", savedMessage);
 
-        // Send to conversation room
-        io.to(conversationId).emit("newMessage", savedMessage);
+        // =========================
+        // Send to sender
+        // =========================
+        socket.emit("newMessage", savedMessage);
+
+        // =========================
+        // Send to recipient
+        // =========================
+        io.to(`user:${recipientId}`).emit("newMessage", savedMessage);
       } catch (error) {
         console.error("❌ Send message error:", error);
 

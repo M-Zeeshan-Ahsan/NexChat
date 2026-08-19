@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { connection } from "../config/dbconfig.js";
 import ApiError from "../middleware/apiError.js";
-import { success } from "zod";
+import { getIO } from "../sockets/socket.js";
 
 const conversationCollection = "conversations";
 const userCollection = "users";
@@ -11,12 +11,23 @@ export const createConversation = async (req, res, next) => {
   try {
     const senderId = req.user.id;
     const { receiverId } = req.body;
+
+    // =========================
+    // Validate Self Conversation
+    // =========================
     if (senderId === receiverId) {
       throw new ApiError(400, "You cannot create a conversation with yourself");
     }
+
     const db = await connection();
-    const collection = await db.collection(conversationCollection);
-    const userCol = await db.collection(userCollection);
+
+    const collection = db.collection(conversationCollection);
+
+    const userCol = db.collection(userCollection);
+
+    // =========================
+    // Check Receiver
+    // =========================
     const receiverUser = await userCol.findOne({
       _id: new ObjectId(receiverId),
     });
@@ -24,7 +35,21 @@ export const createConversation = async (req, res, next) => {
     if (!receiverUser) {
       throw new ApiError(404, "User not found");
     }
-    // Check if conversation already exists
+
+    // =========================
+    // Check Sender
+    // =========================
+    const senderUser = await userCol.findOne({
+      _id: new ObjectId(senderId),
+    });
+
+    if (!senderUser) {
+      throw new ApiError(404, "Sender user not found");
+    }
+
+    // =========================
+    // Check Existing Conversation
+    // =========================
     const conversation = await collection.findOne({
       participants: {
         $all: [new ObjectId(senderId), new ObjectId(receiverId)],
@@ -39,18 +64,67 @@ export const createConversation = async (req, res, next) => {
       });
     }
 
-    // Create new conversation
-    const result = await collection.insertOne({
+    // =========================
+    // Create Conversation
+    // =========================
+    const newConversationData = {
       participants: [new ObjectId(senderId), new ObjectId(receiverId)],
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    };
 
-    // Get newly created conversation
+    const result = await collection.insertOne(newConversationData);
+
+    // =========================
+    // Get New Conversation
+    // =========================
     const newConversation = await collection.findOne({
       _id: result.insertedId,
     });
 
+    console.log("🆕 Conversation Created:", newConversation);
+
+    // =========================
+    // Socket IO
+    // =========================
+    const io = getIO();
+
+    // Conversation object for Receiver
+    const receiverConversation = {
+      id: newConversation._id.toString(),
+
+      participants: newConversation.participants.map((id) => id.toString()),
+
+      createdAt: newConversation.createdAt,
+
+      updatedAt: newConversation.updatedAt,
+
+      chatuser: {
+        id: senderUser._id.toString(),
+        name: senderUser.name,
+        email: senderUser.email,
+        profileImage: senderUser.profileImage || null,
+      },
+
+      unreadCount: 0,
+
+      lastMessage: {
+        message: "",
+        createdAt: null,
+      },
+    };
+
+    // =========================
+    // Send New Conversation
+    // to Receiver in Real-Time
+    // =========================
+    io.to(`user:${receiverId}`).emit("newConversation", receiverConversation);
+
+    console.log(`📢 New conversation sent to user:${receiverId}`);
+
+    // =========================
+    // API Response
+    // =========================
     return res.status(201).json({
       success: true,
       message: "Conversation created successfully",
