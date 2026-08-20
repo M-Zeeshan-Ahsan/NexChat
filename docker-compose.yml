@@ -1,0 +1,18 @@
+services:
+  client:
+    build: ./client
+    container_name: nexchat-client
+    ports:
+      - "5173:5173"
+    env_file:
+      - ./client/.env
+    depends_on:
+      - server
+
+  server:
+    build: ./server
+    container_name: nexchat-server
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./server/.env
