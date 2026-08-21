@@ -139,7 +139,9 @@ export const createConversation = async (req, res, next) => {
 export const getConversations = async (req, res, next) => {
   try {
     const userId = new ObjectId(req.user.id);
-
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
     const db = await connection();
 
     const collection = db.collection(conversationCollection);
@@ -293,7 +295,14 @@ export const getConversations = async (req, res, next) => {
             preserveNullAndEmptyArrays: true,
           },
         },
+        // Pagination
+        {
+          $skip: skip,
+        },
 
+        {
+          $limit: limit,
+        },
         // 10. Final response
         {
           $project: {
@@ -404,6 +413,19 @@ export const getMessages = async (req, res, next) => {
     const userId = new ObjectId(req.user.id);
     const { conversationId } = req.params;
 
+    // Pagination
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+
+    const skip = (page - 1) * limit;
+
+    // Validate conversation ID
+    if (!ObjectId.isValid(conversationId)) {
+      throw new ApiError(400, "Invalid conversation ID");
+    }
+
+    const conversationObjectId = new ObjectId(conversationId);
+
     const db = await connection();
 
     const conversationCol = db.collection(conversationCollection);
@@ -411,7 +433,7 @@ export const getMessages = async (req, res, next) => {
 
     // Check conversation exists
     const conversation = await conversationCol.findOne({
-      _id: new ObjectId(conversationId),
+      _id: conversationObjectId,
     });
 
     if (!conversation) {
@@ -433,7 +455,7 @@ export const getMessages = async (req, res, next) => {
     // Mark other user's unread messages as read
     await messageCol.updateMany(
       {
-        conversationId: new ObjectId(conversationId),
+        conversationId: conversationObjectId,
 
         // Don't mark my own messages
         senderId: {
@@ -452,18 +474,37 @@ export const getMessages = async (req, res, next) => {
       },
     );
 
-    // Get all messages after marking them as read
+    // Total messages
+    const total = await messageCol.countDocuments({
+      conversationId: conversationObjectId,
+    });
+
+    // Get paginated messages
     const messages = await messageCol
       .find({
-        conversationId: new ObjectId(conversationId),
+        conversationId: conversationObjectId,
       })
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray();
+
+    // Reverse so frontend gets oldest → newest
+    messages.reverse();
+
+    const totalPages = Math.ceil(total / limit);
 
     return res.status(200).json({
       success: true,
-      total: messages.length,
       messages,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
     });
   } catch (error) {
     next(error);
