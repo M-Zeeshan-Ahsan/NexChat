@@ -1,21 +1,21 @@
-import React, { use, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { useSelector, useDispatch } from "react-redux";
 import {
-  sendMessage,
-  addMessage,
   markConversationAsRead,
+  getSpecficConversation,
 } from "../../store/slices/chatSlice";
 import { showToast } from "../../utils/toast";
 import socket from "../../socket/socket";
 
 const ChatWindow = ({ conversation }) => {
   const dispatch = useDispatch();
-  const { messages } = useSelector((state) => state.chat);
+  const { messages, messagePagination } = useSelector((state) => state.chat);
   const { user } = useSelector((state) => state.auth);
-  console.log("user", user);
+  const [loadingMore, setLoadingMore] = useState(false);
+  console.log("messagePagination", messagePagination);
   // const handleSendMessage = async (message) => {
   //   if (!message.trim()) return;
 
@@ -62,6 +62,30 @@ const ChatWindow = ({ conversation }) => {
       socket.off("messageError");
     };
   }, [conversation?.id, dispatch]);
+
+  const loadMoreMessages = async () => {
+    if (!conversation?.id || !messagePagination.hasNextPage || loadingMore) {
+      return;
+    }
+
+    const nextPage = messagePagination.page + 1;
+
+    try {
+      setLoadingMore(true);
+
+      await dispatch(
+        getSpecficConversation({
+          conversationId: conversation.id,
+          page: nextPage,
+          limit: 10,
+        }),
+      ).unwrap();
+    } catch (error) {
+      console.error("Load older messages error:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
   // useEffect(() => {
   //   const handleNewMessage = (message) => {
   //     console.log("📩 New message received:", message);
@@ -100,7 +124,12 @@ const ChatWindow = ({ conversation }) => {
     <section className="chat-window">
       <ChatHeader conversation={conversation} />
 
-      <MessageList messages={formattedMessages} />
+      <MessageList
+        messages={formattedMessages}
+        onLoadMore={loadMoreMessages}
+        hasMore={messagePagination.hasNextPage}
+        loadingMore={loadingMore}
+      />
 
       <MessageInput onSend={handleSendMessage} />
     </section>

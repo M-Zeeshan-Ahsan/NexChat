@@ -12,6 +12,15 @@ const initialState = {
   conversations: [],
   messages: [],
   users: [],
+
+  messagePagination: {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  },
 };
 export const getAllConversations = createAsyncThunk(
   "chat/getAllConversations",
@@ -28,15 +37,25 @@ export const getAllConversations = createAsyncThunk(
 );
 export const getSpecficConversation = createAsyncThunk(
   "chat/getSpecficConversation",
-  async (conversationId, { rejectWithValue }) => {
+  async ({ conversationId, page = 1, limit = 10 }, { rejectWithValue }) => {
     try {
       const response = await api.get(
         `${API_URLS.CHAT.GET_SPECIFIC_COVERSATION}/${conversationId}`,
+        {
+          params: {
+            page,
+            limit,
+          },
+        },
       );
-      return response.data.messages;
+
+      return {
+        ...response.data,
+        page,
+      };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "something went wrong",
+        error.response?.data?.message || "Something went wrong",
       );
     }
   },
@@ -133,6 +152,11 @@ const chatSlice = createSlice({
       console.log("test", action.payload);
       state.conversations.unshift(action.payload);
     },
+    addOlderMessages: (state, action) => {
+      state.messages = [...action.payload.messages, ...state.messages];
+
+      state.messagePagination = action.payload.pagination;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(getAllConversations.pending, (state) => {
@@ -153,7 +177,16 @@ const chatSlice = createSlice({
     });
     builder.addCase(getSpecficConversation.fulfilled, (state, action) => {
       state.loading = false;
-      state.messages = action.payload;
+
+      const { messages, pagination, page } = action.payload;
+
+      if (page === 1) {
+        state.messages = messages;
+      } else {
+        state.messages = [...messages, ...state.messages];
+      }
+
+      state.messagePagination = pagination;
     });
     builder.addCase(getSpecficConversation.rejected, (state, action) => {
       state.loading = false;
@@ -188,6 +221,7 @@ const chatSlice = createSlice({
 });
 export const {
   addMessage,
+  addOlderMessages,
   incrementUnreadCount,
   markConversationAsRead,
   updateLastMessage,

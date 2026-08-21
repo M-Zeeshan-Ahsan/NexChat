@@ -18,8 +18,15 @@ const ChatLayout = () => {
 
   useEffect(() => {
     if (!selectedConversation?.id) return;
-    dispatch(getSpecficConversation(selectedConversation.id));
-  }, [dispatch, selectedConversation]);
+
+    dispatch(
+      getSpecficConversation({
+        conversationId: selectedConversation.id,
+        page: 1,
+        limit: 10,
+      }),
+    );
+  }, [dispatch, selectedConversation?.id]);
 
   return (
     <div className="chat-layout">
