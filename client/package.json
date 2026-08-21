@@ -10,10 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.20",
     "@reduxjs/toolkit": "^2.12.0",
     "aos": "^2.3.4",
     "axios": "^1.19.0",
     "date-fns": "^4.4.0",
+    "emoji-picker-react": "^4.19.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-redux": "^9.3.0",

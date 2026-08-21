@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import EmojiPicker from "emoji-picker-react";
+import FloatingDropdown from "../FloatingDropdown/FloatingDropdown";
 
 const MessageInput = ({ onSend }) => {
   const [message, setMessage] = useState("");
-
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -14,14 +16,28 @@ const MessageInput = ({ onSend }) => {
 
     setMessage("");
   };
-
+  const handleEmojiClick = (emojiData) => {
+    setMessage((prev) => prev + emojiData.emoji);
+  };
   return (
     <footer className="message-input-wrapper">
       <form onSubmit={handleSubmit}>
-        <button type="button" className="attachment-btn" title="Attach file">
-          +
-        </button>
-
+        <FloatingDropdown
+          open={showEmojiPicker}
+          onOpenChange={setShowEmojiPicker}
+          placement="top-start"
+          trigger={
+            <button type="button" className="attachment-btn" title="Emoji">
+              😊
+            </button>
+          }
+        >
+          <EmojiPicker
+            onEmojiClick={(emojiData) => {
+              setMessage((prev) => prev + emojiData.emoji);
+            }}
+          />
+        </FloatingDropdown>
         <input
           type="text"
           placeholder="Type a message..."
