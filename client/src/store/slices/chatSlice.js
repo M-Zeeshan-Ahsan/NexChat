@@ -12,14 +12,11 @@ const initialState = {
   conversations: [],
   messages: [],
   users: [],
-
   messagePagination: {
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 0,
-    hasNextPage: false,
-    hasPreviousPage: false,
   },
 };
 export const getAllConversations = createAsyncThunk(
@@ -111,6 +108,16 @@ const chatSlice = createSlice({
   name: "chat",
   initialState,
   reducers: {
+    resetMessages: (state) => {
+      state.messages = [];
+
+      state.messagePagination = {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+      };
+    },
     addMessage: (state, action) => {
       console.log("new message test", action.payload);
       state.messages.push(action.payload);
@@ -151,11 +158,6 @@ const chatSlice = createSlice({
     addConversation: (state, action) => {
       console.log("test", action.payload);
       state.conversations.unshift(action.payload);
-    },
-    addOlderMessages: (state, action) => {
-      state.messages = [...action.payload.messages, ...state.messages];
-
-      state.messagePagination = action.payload.pagination;
     },
   },
   extraReducers: (builder) => {
@@ -213,18 +215,17 @@ const chatSlice = createSlice({
       state.users = action.payload;
     });
 
-    builder.addCase(createConversation.fulfilled, (state, action) => {
+    builder.addCase(createConversation.fulfilled, (state) => {
       state.loading = false;
-      // state.conversations.unshift(action.payload);
     });
   },
 });
 export const {
   addMessage,
-  addOlderMessages,
   incrementUnreadCount,
   markConversationAsRead,
   updateLastMessage,
   addConversation,
+  resetMessages,
 } = chatSlice.actions;
 export default chatSlice.reducer;

@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import {
   getAllConversations,
   getSpecficConversation,
+  resetMessages,
 } from "../../store/slices/chatSlice";
 
 const ChatLayout = () => {
@@ -18,7 +19,7 @@ const ChatLayout = () => {
 
   useEffect(() => {
     if (!selectedConversation?.id) return;
-
+    dispatch(resetMessages());
     dispatch(
       getSpecficConversation({
         conversationId: selectedConversation.id,
@@ -35,7 +36,10 @@ const ChatLayout = () => {
         onSelectConversation={setSelectedConversation}
       />
 
-      <ChatWindow conversation={selectedConversation} />
+      <ChatWindow
+        key={selectedConversation?.id}
+        conversation={selectedConversation}
+      />
     </div>
   );
 };

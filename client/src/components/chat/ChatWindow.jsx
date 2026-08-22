@@ -15,7 +15,6 @@ const ChatWindow = ({ conversation }) => {
   const { messages, messagePagination } = useSelector((state) => state.chat);
   const { user } = useSelector((state) => state.auth);
   const [loadingMore, setLoadingMore] = useState(false);
-  console.log("messagePagination", messagePagination);
   // const handleSendMessage = async (message) => {
   //   if (!message.trim()) return;
 
@@ -41,6 +40,7 @@ const ChatWindow = ({ conversation }) => {
       message: message.trim(),
     });
   };
+
   useEffect(() => {
     if (!conversation?.id) return;
 
@@ -64,11 +64,11 @@ const ChatWindow = ({ conversation }) => {
   }, [conversation?.id, dispatch]);
 
   const loadMoreMessages = async () => {
-    if (!conversation?.id || !messagePagination.hasNextPage || loadingMore) {
-      return;
-    }
+    if (!conversation?.id || loadingMore) return;
 
-    const nextPage = messagePagination.page + 1;
+    const { page, totalPages } = messagePagination;
+
+    if (page >= totalPages) return;
 
     try {
       setLoadingMore(true);
@@ -76,7 +76,7 @@ const ChatWindow = ({ conversation }) => {
       await dispatch(
         getSpecficConversation({
           conversationId: conversation.id,
-          page: nextPage,
+          page: page + 1,
           limit: 10,
         }),
       ).unwrap();
@@ -86,6 +86,7 @@ const ChatWindow = ({ conversation }) => {
       setLoadingMore(false);
     }
   };
+
   // useEffect(() => {
   //   const handleNewMessage = (message) => {
   //     console.log("📩 New message received:", message);
@@ -127,7 +128,7 @@ const ChatWindow = ({ conversation }) => {
       <MessageList
         messages={formattedMessages}
         onLoadMore={loadMoreMessages}
-        hasMore={messagePagination.hasNextPage}
+        hasMore={messagePagination.page < messagePagination.totalPages}
         loadingMore={loadingMore}
       />
 
