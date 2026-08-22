@@ -145,7 +145,9 @@ export const getConversations = async (req, res, next) => {
     const db = await connection();
 
     const collection = db.collection(conversationCollection);
-
+    const total = await collection.countDocuments({
+      participants: userId,
+    });
     const conversations = await collection
       .aggregate([
         // 1. Current user's conversations
@@ -332,10 +334,18 @@ export const getConversations = async (req, res, next) => {
         },
       ])
       .toArray();
-
+    const totalPages = Math.ceil(total / limit);
     return res.status(200).json({
       success: true,
+
       data: conversations,
+
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
     });
   } catch (error) {
     console.log(error);
